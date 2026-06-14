@@ -52,3 +52,37 @@ document-classifier-pro/
     ├── analytics.py      # Motor matemático de ROI y generador de Excel multi-pestaña
     ├── azure_ocr.py      # Conector perimetral con la API v4.0 de Azure AI Layout
     └── openai_brain.py   # Esquema JSON estricto y orquestación semántica de GPT-4o
+```
+
+---
+
+## 🚀 Instalación y Despliegue Local
+
+1. Clonar el repositorio:
+```bash
+git clone [https://github.com/Alekhine-Spitfire/document-classifier-pro.git](https://github.com/Alekhine-Spitfire/document-classifier-pro.git)
+cd document-classifier-pro
+```
+
+2. Crear e iniciar el entorno virtual aislado:
+```bash
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+3. Instalar la infraestructura de dependencias fijadas:
+```bash
+pip install -r requirements.txt
+```
+
+4. Configurar tus credenciales en un archivo `.env` en la raíz:
+```env
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT="[https://tu-recurso.cognitiveservices.azure.com/](https://tu-recurso.cognitiveservices.azure.com/)"
+AZURE_DOCUMENT_INTELLIGENCE_KEY="tu_llave_privada"
+OPENAI_API_KEY="tu_llave_secreta_sk"
+```
+
+5. Ejecutar la consola de mandos:
+```bash
+streamlit run app.py
+```
