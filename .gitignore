@@ -1,0 +1,60 @@
+# ==========================================
+# Coordenadas de Seguridad: Entorno y Secretos
+# ==========================================
+.env
+.env.local
+.env.*
+*.usr
+*.key
+# Protege los secretos locales de Streamlit si llegas a usarlos
+.streamlit/secrets.toml
+
+# ==========================================
+# Entornos Virtuales (¡Crucial para no pesar Gigas!)
+# ==========================================
+venv/
+.venv/
+env/
+ENV/
+lib/
+bin/
+include/
+
+# ==========================================
+# Caches de Python y Compilación
+# ==========================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ==========================================
+# Basura de Editores e IDEs (Evita conflictos de configuración)
+# ==========================================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# ==========================================
+# Archivos del Sistema Operativo
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# ==========================================
+# Datos de Prueba y Salidas locales
+# ==========================================
+# Evita subir los PDFs de prueba de tus clientes o los Excel generados
+*.pdf
+*.xlsx
+*.csv
