@@ -70,10 +70,10 @@ with st.sidebar:
     st.divider()
     st.markdown("### 🔒 Estado de Infraestructura")
     
-    has_azure = bool(os.getenv("AZURE_DOCUMENT_INTELLIGENCE_KEY"))
-    has_openai = bool(os.getenv("OPENAI_API_KEY"))
+    has_azure_ocr = bool(os.getenv("AZURE_DOCUMENT_INTELLIGENCE_KEY"))
+    has_azure_llm = bool(os.getenv("AZURE_OPENAI_KEY"))
     
-    if has_azure and has_openai:
+    if has_azure_ocr and has_azure_llm:
         st.success("Conectores Cloud: ONLINE")
     else:
         st.warning("Conectores Cloud: MODO LOCAL")
@@ -88,23 +88,10 @@ MOCK_BATCH_DATA = [
         "items": [{"descripcion": "Examen de Certificación IA-900", "cantidad": 1, "precio_unitario": 59.00, "total_item": 59.00}]
     },
     {
-        "tipo_documento": "Factura", "proveedor": "NCS Pearson, Inc", "nit_rutf_id": "41-0850527",
-        "fecha_emision": "2026-05-05", "moneda": "USD", "total_neto": 29.50, "impuestos": 0.0, "total_pagar": 29.50,
-        "items": [{"descripcion": "Examen de Certificación DP-900", "cantidad": 1, "precio_unitario": 29.50, "total_item": 29.50}]
-    },
-    {
         "tipo_documento": "Boleta", "proveedor": "Delivery Hero Peru S.A.C.", "nit_rutf_id": "20551348041",
         "fecha_emision": "2026-03-29", "moneda": "S/", "total_neto": 2.20, "impuestos": 0.40, "total_pagar": 2.60,
         "items": [
             {"descripcion": "Servicio logístico PedidosYa", "cantidad": 1, "precio_unitario": 1.61, "total_item": 1.61},
-            {"descripcion": "Tarifa de servicio", "cantidad": 1, "precio_unitario": 0.59, "total_item": 0.59}
-        ]
-    },
-    {
-        "tipo_documento": "Boleta", "proveedor": "Delivery Hero Peru S.A.C.", "nit_rutf_id": "20551348041",
-        "fecha_emision": "2026-05-17", "moneda": "S/", "total_neto": 3.90, "impuestos": 0.70, "total_pagar": 4.60,
-        "items": [
-            {"descripcion": "Servicio logístico PedidosYa", "cantidad": 1, "precio_unitario": 3.31, "total_item": 3.31},
             {"descripcion": "Tarifa de servicio", "cantidad": 1, "precio_unitario": 0.59, "total_item": 0.59}
         ]
     }
@@ -162,12 +149,26 @@ if st.session_state.processed_docs:
     
     roi = calculate_roi_metrics(len(st.session_state.processed_docs))
     
-    # Renderizado limpio de métricas
+    # 🎯 ALGORITMO PREMIUM: Conversión de decimales a formato Reloj real (h y min)
+    horas_raw = roi['horas_ahorradas']
+    total_minutos = int(round(horas_raw * 60))
+    entero_horas = total_minutos // 60
+    minutos = total_minutos % 60
+
+    if entero_horas == 0:
+        tiempo_display = f"{minutos} Min"
+    else:
+        if minutos == 0:
+            tiempo_display = f"{entero_horas}h"
+        else:
+            tiempo_display = f"{entero_horas}h {minutos}min"
+    
+    # Renderizado de métricas
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"<div class='metric-card-horizontal'><div class='metric-label'>🏢 Docs Procesados</div><div class='metric-val'>{len(st.session_state.processed_docs)}</div></div>", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<div class='metric-card-horizontal'><div class='metric-label'>⏳ Tiempo Ahorrado</div><div class='metric-val'>{roi['horas_ahorradas']} Hrs</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card-horizontal'><div class='metric-label'>⏳ Tiempo Ahorrado</div><div class='metric-val'>{tiempo_display}</div></div>", unsafe_allow_html=True)
     with col3:
         st.markdown(f"<div class='metric-card-horizontal'><div class='metric-label'>💸 Dinero Ahorrado</div><div class='metric-val'>${roi['dinero_ahorrado_usd']} USD</div></div>", unsafe_allow_html=True)
     with col4:
@@ -176,7 +177,7 @@ if st.session_state.processed_docs:
     st.caption(f"📊 Costo Operativo Estimado del Pipeline de IA: **${roi['costo_ia_usd']} USD** frente a los **${roi['costo_manual_usd']} USD** del proceso tradicional manual.")
 
     # ==========================================
-    # BI DASHBOARD REPOTENCIADO (DISEÑO HORIZONTAL EN FILAS VERTICALES)
+    # BI DASHBOARD REPOTENCIADO (COMPACTADO LADO A LADO)
     # ==========================================
     st.write("")
     st.write("### 📈 Visualización Avanzada de Carga Financiera")
@@ -189,35 +190,43 @@ if st.session_state.processed_docs:
     df_hd['tipo_documento'] = df_hd['tipo_documento'].fillna('Desconocido')
     df_hd['moneda'] = df_hd['moneda'].fillna('N/A')
 
-    # 💰 FILA 1: Gráfica de Gastos por Proveedor
-    st.markdown("**💰 Concentración de Gastos por Proveedor y Divisa**")
-    df_spend = df_hd.groupby(['proveedor', 'moneda'])['total_pagar'].sum().reset_index()
-    
-    chart_spend = alt.Chart(df_spend).mark_bar().encode(
-        x=alt.X('proveedor:N', title='Proveedor', sort='-y', 
-                axis=alt.Axis(labelAngle=0, labelAlign='center', labelPadding=8)), # Labels perfectos a 0°
-        y=alt.Y('total_pagar:Q', title='Monto Total Acumulado'),
-        color=alt.Color('moneda:N', title='Divisa', scale=alt.Scale(scheme='tableau10'))
-    ).properties(height=300)
-    
-    st.altair_chart(chart_spend, use_container_width=True)
-    st.caption("Análisis por divisa aislada. Estructura vertical con lectura horizontal nativa.")
+    # 🎯 CONTROL PERIMETRAL: El doble candado para quitar espacios fantasmas en strings
+    if not df_hd.empty:
+        df_hd['moneda'] = df_hd['moneda'].astype(str).str.strip()
+        df_hd['proveedor'] = df_hd['proveedor'].astype(str).str.strip()
 
-    st.write("")  # Colchón de espacio de diseño entre filas
+    # Dividimos el espacio horizontal en 2 columnas paralelas para contener perfectamente las barras
+    col_grafico1, col_grafico2 = st.columns(2)
 
-    # 🗂️ FILA 2: Gráfica de Volumen por Categoría (¡Ahora abajo!)
-    st.markdown("**🗂️ Volumen Operativo por Categoría de Documento**")
-    df_counts = df_hd['tipo_documento'].value_counts().reset_index()
-    df_counts.columns = ['tipo_documento', 'cantidad']
-    
-    chart_counts = alt.Chart(df_counts).mark_bar(color="#48C264").encode(
-        x=alt.X('tipo_documento:N', title='Tipo Documento', sort='-x',
-                axis=alt.Axis(labelAngle=0, labelAlign='center', labelPadding=8)), # Labels perfectos a 0°
-        y=alt.Y('cantidad:Q', title='Cantidad de Comprobantes', axis=alt.Axis(tickMinStep=1))
-    ).properties(height=300)
-    
-    st.altair_chart(chart_counts, use_container_width=True)
-    st.caption("Clasificación semántica automatizada por lote distribuida en fila dedicada.")
+    with col_grafico1:
+        st.markdown("**💰 Concentración de Gastos por Proveedor y Divisa**")
+        if not df_hd.empty:
+            # 🎯 ALTAIR OPTIMIZADO: Consume df_hd (100% plano, serializable y libre de crashes)
+            chart_spend = alt.Chart(df_hd).mark_bar(size=35).encode(
+                x=alt.X('proveedor:N', title='Proveedor', axis=alt.Axis(labelAngle=0, labelAlign='center', labelPadding=8)),
+                y=alt.Y('total_pagar:Q', title='Monto Total Acumulado'),
+                color=alt.Color('moneda:N', title='Divisa', scale=alt.Scale(scheme='tableau10')),
+                tooltip=['proveedor', 'moneda', 'total_pagar']
+            ).properties(height=320).interactive()
+        
+            st.altair_chart(chart_spend, use_container_width=True)
+            st.caption("Análisis por divisa unificada.")
+
+    with col_grafico2:
+        st.markdown("**🗂️ Volumen Operativo por Categoría de Documento**")
+        if not df_hd.empty:
+            df_counts = df_hd['tipo_documento'].value_counts().reset_index()
+            df_counts.columns = ['tipo_documento', 'count']
+            
+            chart_counts = alt.Chart(df_counts).mark_bar(size=35).encode(
+                x=alt.X('tipo_documento:N', title='Categoría de Documento', axis=alt.Axis(labelAngle=0, labelAlign='center', labelPadding=8)),
+                y=alt.Y('count:Q', title='Cantidad de Comprobantes'),
+                color=alt.Color('tipo_documento:N', title='Tipo', scale=alt.Scale(scheme='tableau10')),
+                tooltip=['tipo_documento', 'count']
+            ).properties(height=320).interactive()
+        
+            st.altair_chart(chart_counts, use_container_width=True)
+            st.caption("Clasificación semántica automatizada por lote.")
 
     # ==========================================
     # El Botón de Oro: Exportación Directa a Excel ERP
@@ -243,7 +252,7 @@ if st.session_state.processed_docs:
     
     with tab1:
         st.write("### Datos Generales Extraídos por Documento")
-        st.dataframe(df_hd, width='stretch')
+        st.dataframe(df_hd, use_container_width=True)
         
     with tab2:
         st.write("### Desglose Detallado de Artículos (Trazabilidad Relacional)")
@@ -252,7 +261,7 @@ if st.session_state.processed_docs:
             for item in doc.get("items", []):
                 item_row = {"Proveedor": doc.get("proveedor"), **item}
                 all_items.append(item_row)
-        st.dataframe(pd.DataFrame(all_items), width='stretch')
+        st.dataframe(pd.DataFrame(all_items), use_container_width=True)
         
     with tab3:
         st.write("### Esquema Estricto de Datos Estructurados")
